@@ -9,10 +9,20 @@ def prioridad_local(valor, puntos_x, puntos_y):
     :param puntos_y: Lista de prioridades correspondientes a los puntos de corte.
     :return: Prioridad local calculada mediante interpolación lineal.
     """
-    # Asegurarse de que los puntos estén ordenados
+    if np.ndim(valor) != 0:
+        raise ValueError("valor debe ser un único número.")
+
+    puntos_x = np.asarray(puntos_x, dtype=float)
+    puntos_y = np.asarray(puntos_y, dtype=float)
+    if puntos_x.ndim != 1 or puntos_y.ndim != 1:
+        raise ValueError("puntos_x y puntos_y deben ser listas unidimensionales.")
+    if puntos_x.size == 0 or puntos_x.size != puntos_y.size:
+        raise ValueError("puntos_x y puntos_y deben tener la misma cantidad de elementos y no estar vacíos.")
+
+    # Ordenar los puntos de corte y sus prioridades correspondientes.
     sorted_indices = np.argsort(puntos_x)
-    puntos_x = np.array(puntos_x)[sorted_indices]
-    puntos_y = np.array(puntos_y)[sorted_indices]
+    puntos_x = puntos_x[sorted_indices]
+    puntos_y = puntos_y[sorted_indices]
 
     # Interpolación lineal
     if valor <= puntos_x[0]:

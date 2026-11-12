@@ -2,6 +2,21 @@ import ahp, ahpsort, datos, mapa, prioridades
 import numpy as np
 import pandas as pd
 
+def _parsear_puntos(valor, columna, criterio):
+    if not isinstance(valor, str):
+        raise ValueError(f"Valor no válido en {columna} para {criterio}: {valor!r}")
+
+    contenido = valor.strip()
+    if not (contenido.startswith("[") and contenido.endswith("]")):
+        raise ValueError(f"Formato no válido en {columna} para {criterio}: {valor!r}")
+
+    try:
+        elementos = contenido[1:-1].split(";")
+        return [float(elemento.strip()) for elemento in elementos]
+    except ValueError as error:
+        raise ValueError(f"Valor no numérico en {columna} para {criterio}: {valor!r}") from error
+
+
 def ahpsort_ii():
     # 1. Lee los datos necesarios desde un archivo CSV utilizando la función leer_datos_csv de datos.py.
     ruta_archivo = "datos/datosAndalucia.csv"  # Cambia esto a la ruta de tu archivo CSV
@@ -49,73 +64,82 @@ def ahpsort_ii():
     if prlocales is None:
         print("No se pudieron leer los datos de prioridades locales. Asegúrese de que el archivo existe y tiene el formato correcto.")
         return
-    puntos_x = prlocales['Puntos_x'].apply(eval).tolist()  # Convertimos las cadenas de texto a listas
-    puntos_y = prlocales['Puntos_y'].apply(eval).tolist()  # Convertimos las cadenas de texto a listas
+    puntos_x = [
+        _parsear_puntos(fila["Puntos_x"], "Puntos_x", fila["Criterios"])
+        for _, fila in prlocales.iterrows()
+    ]
+    puntos_y = [
+        _parsear_puntos(fila["Puntos_y"], "Puntos_y", fila["Criterios"])
+        for _, fila in prlocales.iterrows()
+    ]
+    for criterio, valores_x, valores_y in zip(prlocales["Criterios"], puntos_x, puntos_y):
+        if len(valores_x) != len(valores_y):
+            raise ValueError(
+                f"El criterio {criterio} tiene {len(valores_x)} puntos X y "
+                f"{len(valores_y)} puntos Y."
+            )
     # Para cada perfil central (CP), calculamos la prioridad local según los puntos de referencia (RF) y los valores de las alternativas
-    prioridades = {} # Diccionario para almacenar las prioridades locales de cada criterio y global para cada perfil
+    lista_prioridades = {} # Diccionario para almacenar las prioridades locales de cada criterio y global para cada perfil
     prioridades_locales = []  # Lista para almacenar las prioridades locales de cada criterio
     prioridades_globales = []  # Lista para almacenar las prioridades globales de cada perfil
+    prioridades_globales_perfiles = {}
     for i in range(len(vAlto)):
-        prioridad = prioridades.prioridad_local(vAlto[i], puntos_x, puntos_y)
+        prioridad = prioridades.prioridad_local(vAlto[i], puntos_x[i], puntos_y[i])
         prioridades_locales.append(prioridad)
     print(f"Prioridades locales para el perfil Alto: {prioridades_locales}")
     # Después, se calcula la prioridad global utilizando la función prioridad_global de ahpsort.py, pasando las prioridades locales y los pesos de los criterios como argumentos.
     prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
     print(f"Prioridad global para el perfil Alto: {prioridad_global}")
-    prioridades_globales.append(prioridad_global)
-    prioridades_locales.append(prioridad_global)  # La prioridad global se añade a la lista de prioridades para guardar los resultados en un archivo CSV. 
-    prioridades["Alto"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Alto en el diccionario de prioridades
+    prioridades_globales_perfiles["Alto"] = prioridad_global
+    lista_prioridades["Alto"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Alto en el diccionario de prioridades
     # Repetimos el proceso para los valores de prioridad local de vMedio y vBajo
     prioridades_locales = []  # Reiniciamos la lista de prioridades locales para vMedio
     for i in range(len(vMedio)):
-        prioridad = prioridades.prioridad_local(vMedio[i], puntos_x, puntos_y)
+        prioridad = prioridades.prioridad_local(vMedio[i], puntos_x[i], puntos_y[i])
         prioridades_locales.append(prioridad)
     print(f"Prioridades locales para el perfil Medio: {prioridades_locales}")
     prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
     print(f"Prioridad global para el perfil Medio: {prioridad_global}")
-    prioridades_globales.append(prioridad_global)
-    prioridades_locales.append(prioridad_global)
-    prioridades["Medio"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Medio en el diccionario de prioridades
+    prioridades_globales_perfiles["Medio"] = prioridad_global
+    lista_prioridades["Medio"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Medio en el diccionario de prioridades
+    # Repetimos el proceso para los valores de prioridad local de vBajo
     prioridades_locales = []  # Reiniciamos la lista de prioridades locales para vBajo
     for i in range(len(vBajo)):
-        prioridad = prioridades.prioridad_local(vBajo[i], puntos_x, puntos_y)
+        prioridad = prioridades.prioridad_local(vBajo[i], puntos_x[i], puntos_y[i])
         prioridades_locales.append(prioridad)
     print(f"Prioridades locales para el perfil Bajo: {prioridades_locales}")
     prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
     print(f"Prioridad global para el perfil Bajo: {prioridad_global}")
-    prioridades_globales.append(prioridad_global)
-    prioridades_locales.append(prioridad_global)
-    prioridades["Bajo"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Bajo en el diccionario de prioridades
+    prioridades_globales_perfiles["Bajo"] = prioridad_global
+    lista_prioridades["Bajo"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Bajo en el diccionario de prioridades
     # Guardamos los resultados en un archivo CSV utilizando la función guardar_resultados_csv de datos.py.
-    resultados_cp = pd.DataFrame.from_dict(prioridades, orient='index', columns=[f'Prioridad Local {i+1}' for i in range(len(puntos_x))] + ['Prioridad Global'])
+    resultados_cp = pd.DataFrame.from_dict(lista_prioridades, orient='index', columns=[f'Prioridad Local {i+1}' for i in range(len(puntos_x))])
     ruta_resultados = "resultados/resultados_prioridades.csv"
     datos.guardar_resultados_csv(resultados_cp, ruta_resultados)
 
     # Calculamos ahora las prioridades locales para cada alternativa utilizando la función prioridad_local de prioridades.py, y luego calculamos la prioridad global utilizando la función prioridad_global de ahpsort.py.
     prioridades_locales = []
     prioridades_globales = []
-    for i in range(len(df)):
+    for i in range(len(columna_alternativas)):
         valores = df.iloc[i].values.flatten().tolist()  # Valores de cada alternativa
         for j in range(len(valores)):
             valor = valores[j]
-            puntos_x = rpData.iloc[j].values.flatten().tolist()  # Puntos de corte (RF) para el criterio j
-            puntos_y = cpData.iloc[j].values.flatten().tolist()  # Valores de prioridad local (CP) para el criterio j
-            prioridad_local = prioridades.prioridad_local(valor, puntos_x, puntos_y)  # Calculamos la prioridad local para cada alternativa
+            prioridad_local = prioridades.prioridad_local(valor, puntos_x[j], puntos_y[j])  # Calculamos la prioridad local para cada alternativa
             prioridades_locales.append(prioridad_local)
-        print(f"Prioridades locales para las alternativa {df.index[i]}: {prioridades_locales}")
+        print(f"Prioridades locales para las alternativa {columna_alternativas[i]}: {prioridades_locales}")
         prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
-        print(f"Prioridad global para la alternativa {df.index[i]}: {prioridad_global}")
+        print(f"Prioridad global para la alternativa {columna_alternativas[i]}: {prioridad_global}")
         prioridades_globales.append(prioridad_global)
         # Reiniciamos la lista de prioridades locales para la siguiente alternativa
         prioridades_locales = []
 
     # 5. De cada prioridad global calculada para cada alternativa, comparamos con los valores de prioridad global de los perfiles Alto, Medio y Bajo
     # y asignamos la categoría correspondiente a cada alternativa.
-    umbrales = [("Bajo", 0, prioridades["Bajo"][-1]), ("Medio", prioridades["Bajo"][-1], prioridades["Medio"][-1]), ("Alto", prioridades["Medio"][-1], 1)]
+    umbrales = [("Bajo", prioridades_globales_perfiles["Bajo"], prioridades_globales_perfiles["Medio"]), ("Medio", prioridades_globales_perfiles["Medio"], prioridades_globales_perfiles["Alto"]), ("Alto", prioridades_globales_perfiles["Alto"], 1)]
     categorias_asignadas = {}
     for i, prioridad_global in enumerate(prioridades_globales):
         categoria = ahpsort.clasificar(prioridad_global, umbrales)
-        categorias_asignadas[df.index[i]] = categoria
+        categorias_asignadas[columna_alternativas[i]] = categoria
     print(f"Categorías asignadas: {categorias_asignadas}")
 
     # 6. Guardamos la tabla de clasificación en un archivo CSV utilizando la función guardar_resultados_csv de datos.py.
@@ -124,7 +148,7 @@ def ahpsort_ii():
     datos.guardar_resultados_csv(resultados_clasificacion, ruta_resultados_clasificacion)
 
     # 7. Finalmente, podemos visualizar los resultados en un mapa utilizando la función de visualización de mapa.py.
-    mapa.visualizar_resultados(df.index.tolist(), prioridad_global, categoria)
+    mapa.mostrar_mapa_shapefile("datos/da03_provincia.shp", categorias_asignadas, "resultados/mapa_prioridades.png")
 
 if __name__ == "__main__":
     ahpsort_ii()
