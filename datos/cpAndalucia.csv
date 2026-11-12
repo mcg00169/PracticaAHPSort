@@ -1,4 +1,4 @@
-Perfiles,Crimenes,Robo,RelacionadoConVehiculos,OrdenPublico,Drogas
-Alto,20,5000,5000,300,300
-Medio,100,95000,19000,1800,600
-Bajo,160,180000,27000,2500,900
+Crimenes,Robo,RelacionadoConVehiculos,OrdenPublico,Drogas
+20,5000,5000,300,300
+100,95000,19000,1800,600
+160,180000,27000,2500,900

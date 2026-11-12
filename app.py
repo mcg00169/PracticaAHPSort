@@ -10,8 +10,9 @@ def ahpsort_ii():
         print("No se pudieron leer los datos. Asegúrate de que el archivo existe y tiene el formato correcto.")
         return
     # Muestra los criterios y alternativas leídos del archivo CSV
+    columna_alternativas = ["Almeria", "Cadiz", "Cordoba", "Granada", "Huelva", "Jaen", "Malaga", "Sevilla"]
     print(f"Criterios: {df.columns.tolist()}")
-    print(f"Alternativas: {df.index.tolist()}")
+    print(f"Alternativas: {columna_alternativas}")
     criterios = df.columns.tolist()
 
     # 2. Define los pesos de los criterios y subcriterios utilizando la función calcular_pesos de ahp.py.
@@ -44,8 +45,12 @@ def ahpsort_ii():
     vBajo = valores[10:15]
 
     # Leemos los puntos de corte RP y los valores de la prioridad local para cada criterio
-    puntos_x = rpData.values.flatten().tolist()  # Puntos de corte (RF)
-    puntos_y = cpData.values.flatten().tolist()  # Valores de prioridad local (CP)
+    prlocales = datos.leer_datos_csv("datos/prlocales.csv")
+    if prlocales is None:
+        print("No se pudieron leer los datos de prioridades locales. Asegúrese de que el archivo existe y tiene el formato correcto.")
+        return
+    puntos_x = prlocales['Puntos_x'].apply(eval).tolist()  # Convertimos las cadenas de texto a listas
+    puntos_y = prlocales['Puntos_y'].apply(eval).tolist()  # Convertimos las cadenas de texto a listas
     # Para cada perfil central (CP), calculamos la prioridad local según los puntos de referencia (RF) y los valores de las alternativas
     prioridades = {} # Diccionario para almacenar las prioridades locales de cada criterio y global para cada perfil
     prioridades_locales = []  # Lista para almacenar las prioridades locales de cada criterio
