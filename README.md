@@ -25,8 +25,8 @@ Al finalizar el proceso, el programa mostrará un mapa de cada provincia, sea au
 - Para el caso de las prioridades locales, los formatos de los archivos CSV contienen los nombres de los criterios y los valores de los puntos formados en corchetes para que el programa permita **parsear** los puntos X e Y mediante un método privado llamado `_parsear_puntos(valor, columna, criterio)`. Un ejemplo de este formato es la siguiente:
 ```csv
 Categoría,Punto_x,Punto_y
-Cat1,[0,0.1,0.2,0.3,0.4],[0.333,0.298,0.122,0.074,0.03]
-Cat2,[0,0.1,0.2,0.3,0.4],[0.333,0.298,0.122,0.074,0.03]
+Cat1,[0;0.1;0.2;0.3;0.4],[0.333;0.298;0.122;0.074;0.03]
+Cat2,[0;0.1;0.2;0.3;0.4],[0.333;0.298;0.122;0.074;0.03]
 ```
 ## Pasos para ejecutar el programa
 1. Importante **crear** una carpeta denominada `/resultados`. Si no se crea, el programa no puede guardar los resultados.
