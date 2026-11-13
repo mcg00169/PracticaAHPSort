@@ -278,6 +278,151 @@ def ahpsort_ii():
 
     # 4. Visualizamos los nuevos resultados en un mapa utilizando la función de visualización de mapa.py.
     mapa.mostrar_mapa_shapefile("datos/da03_provincia.shp", categorias_asignadas, "resultados/mapa_prioridades2.png")
-    
+
+    ## TERCERA PARTE: Cálculo de prioridades locales y globales para cada alternativa y perfil de los datos nacionales del 2017
+    # 1. Leemos los datos nacionales del 2017 por 10000 habitantes desde un archivo CSV utilizando la función leer_datos_csv de datos.py.
+    datosNacionales2017 = datos.leer_datos_csv("datos/datosNacionales10000_2017.csv")
+    if datosNacionales2017 is None:
+        print("No se pudieron leer los datos nacionales. Asegúrate de que el archivo existe y tiene el formato correcto.")
+        return
+    # 2. Almacenamos también los perfiles centrales (CP) y puntos de referencia (RP) de cada criterio
+    rp3Data = datos.leer_datos_csv("datos/rpNacionales2017.csv")
+    cp3Data = datos.leer_datos_csv("datos/cpNacionales2017.csv")
+    valores = cp3Data.values.flatten().tolist()
+    vAlto = valores[0:5]
+    vMedio = valores[5:10]
+    vBajo = valores[10:15]
+
+    # 3. Leemos los datos de las prioridades locales
+    prlocales3 = datos.leer_datos_csv("datos/prlocales3.csv")
+    if prlocales3 is None:
+        print("No se pudieron leer los datos de prioridades locales. Asegúrese de que el archivo existe y tiene el formato correcto.")
+        return
+    puntos_x = [
+        _parsear_puntos(fila["Puntos_x"], "Puntos_x", fila["Criterios"])
+        for _, fila in prlocales3.iterrows()
+    ]
+    puntos_y = [
+        _parsear_puntos(fila["Puntos_y"], "Puntos_y", fila["Criterios"])
+        for _, fila in prlocales3.iterrows()
+    ]
+    for criterio, valores_x, valores_y in zip(prlocales3["Criterios"], puntos_x, puntos_y):
+        if len(valores_x) != len(valores_y):
+            raise ValueError(
+                f"El criterio {criterio} tiene {len(valores_x)} puntos X y "
+                f"{len(valores_y)} puntos Y."
+            )
+    # 4. Calculamos las funciones de prioridad local y obtenemos la global de cada perfil central
+    lista_prioridades = {} # Diccionario para almacenar las prioridades locales de cada criterio y global para cada perfil
+    prioridades_locales = []  # Lista para almacenar las prioridades locales de cada criterio
+    prioridades_globales = []  # Lista para almacenar las prioridades globales de cada perfil
+    prioridades_globales_perfiles = {}
+    for i in range(len(vAlto)):
+        prioridad = prioridades.prioridad_local(vAlto[i], puntos_x[i], puntos_y[i])
+        prioridades_locales.append(prioridad)
+    print(f"Prioridades locales para el perfil Alto: {prioridades_locales}")
+    # Después, se calcula la prioridad global utilizando la función prioridad_global de ahpsort.py, pasando las prioridades locales y los pesos de los criterios como argumentos.
+    prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
+    print(f"Prioridad global para el perfil Alto: {prioridad_global}")
+    prioridades_globales_perfiles["Alto"] = prioridad_global
+    lista_prioridades["Alto"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Alto en el diccionario de prioridades
+    # Repetimos el proceso para los valores de prioridad local de vMedio y vBajo
+    prioridades_locales = []  # Reiniciamos la lista de prioridades locales para vMedio
+    for i in range(len(vMedio)):
+        prioridad = prioridades.prioridad_local(vMedio[i], puntos_x[i], puntos_y[i])
+        prioridades_locales.append(prioridad)
+    print(f"Prioridades locales para el perfil Medio: {prioridades_locales}")
+    prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
+    print(f"Prioridad global para el perfil Medio: {prioridad_global}")
+    prioridades_globales_perfiles["Medio"] = prioridad_global
+    lista_prioridades["Medio"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Medio en el diccionario de prioridades
+    # Repetimos el proceso para los valores de prioridad local de vBajo
+    prioridades_locales = []  # Reiniciamos la lista de prioridades locales para vBajo
+    for i in range(len(vBajo)):
+        prioridad = prioridades.prioridad_local(vBajo[i], puntos_x[i], puntos_y[i])
+        prioridades_locales.append(prioridad)
+    print(f"Prioridades locales para el perfil Bajo: {prioridades_locales}")
+    prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
+    print(f"Prioridad global para el perfil Bajo: {prioridad_global}")
+    prioridades_globales_perfiles["Bajo"] = prioridad_global
+    lista_prioridades["Bajo"] = prioridades_locales  # Guardamos las prioridades locales y globales para el perfil Bajo en el diccionario de prioridades
+    # Guardamos los resultados en un archivo CSV utilizando la función guardar_resultados_csv de datos.py.
+    resultados_cp = pd.DataFrame.from_dict(lista_prioridades, orient='index', columns=[f'Prioridad Local {i+1}' for i in range(len(puntos_x))])
+    ruta_resultados = "resultados/resultados_prioridades3.csv"
+    datos.guardar_resultados_csv(resultados_cp, ruta_resultados)
+
+    # 5. Calculamos ahora las prioridades locales de cada provincia española, y luego la prioridad global
+    prioridades_locales = []
+    prioridades_globales = []
+    for i in range(len(provincias) - 2): # Ceuta y Melilla no se incluyen en las prioridades locales y globales
+        valores = datosNacionales2017.iloc[i].values.flatten().tolist()  # Valores de cada alternativa
+        for j in range(len(valores)):
+            valor = valores[j]
+            prioridad_local = prioridades.prioridad_local(valor, puntos_x[j], puntos_y[j])  # Calculamos la prioridad local para cada alternativa
+            prioridades_locales.append(prioridad_local)
+        print(f"Prioridades locales para las alternativa {provincias[i]}: {prioridades_locales}")
+        prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
+        print(f"Prioridad global para la alternativa {provincias[i]}: {prioridad_global}")
+        prioridades_globales.append(prioridad_global)
+        # Reiniciamos la lista de prioridades locales para la siguiente alternativa
+        prioridades_locales = []
+
+    # Asignamos cada provincia en la categoría correspondiente
+    umbrales = [("Bajo", 0, prioridades_globales_perfiles["Bajo"]), ("Medio", prioridades_globales_perfiles["Bajo"], prioridades_globales_perfiles["Medio"]), ("Alto", prioridades_globales_perfiles["Medio"], 1)]
+    categorias_asignadas = {}
+    for i, prioridad_global in enumerate(prioridades_globales):
+        categoria = ahpsort.clasificar(prioridad_global, umbrales)
+        categorias_asignadas[provincias[i]] = categoria
+    print(f"Categorías asignadas: {categorias_asignadas}")
+
+    # 6. Guardamos los resultados clasificados a través de un archivo CSV
+    resultados_clasificacion = pd.DataFrame.from_dict(categorias_asignadas, orient='index', columns=['Categoría'])
+    ruta_resultados_clasificacion = "resultados/resultados_clasificacion3.csv"
+    datos.guardar_resultados_csv(resultados_clasificacion, ruta_resultados_clasificacion)
+
+    # 7. Visualizamos el mapa y lo guardamos en formato PNG
+    mapa.mostrar_mapa_espana_shapefile("datos/recintos_provinciales_inspire_peninbal_etrs89.shp", categorias_asignadas, "resultados/mapa_prioridades3.png")
+
+    ## CUARTA PARTE: Cálculo de prioridades locales y globales para cada alternativa y perfil de los datos nacionales del 2017
+    # 1. Leemos los datos nacionales del 2023 por 10000 habitantes desde un archivo CSV utilizando la función leer_datos_csv de datos.py.
+    datosNacionales2023 = datos.leer_datos_csv("datos/datosNacionales10000_2023.csv")
+    if datosNacionales2023 is None:
+        print("No se pudieron leer los datos nacionales. Asegúrate de que el archivo existe y tiene el formato correcto.")
+        return
+    # Utilizaremos los mismos datos del perfil central y puntos de referencia que hicimos con los datos nacionales del 2017
+    # Los datos de la prioridad local de cada perfil central ya están calculadas, con lo que lo único que necesitamos es realizar un truncamiento de RPs
+    # y calcular la clasificación de cada provincia de España con los datos del 2023.
+
+    # 2. Calculamos las prioridades locales de cada provincia española, y luego la prioridad global
+    prioridades_locales = []
+    prioridades_globales = []
+    for i in range(len(provincias) - 2): # Ceuta y Melilla no se incluyen en las prioridades locales y globales
+        valores = datosNacionales2023.iloc[i].values.flatten().tolist()  # Valores de cada alternativa
+        for j in range(len(valores)):
+            valor = valores[j]
+            prioridad_local = prioridades.prioridad_local(valor, puntos_x[j], puntos_y[j])  # Calculamos la prioridad local para cada alternativa
+            prioridades_locales.append(prioridad_local)
+        print(f"Prioridades locales para las alternativa {provincias[i]}: {prioridades_locales}")
+        prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
+        print(f"Prioridad global para la alternativa {provincias[i]}: {prioridad_global}")
+        prioridades_globales.append(prioridad_global)
+        # Reiniciamos la lista de prioridades locales para la siguiente alternativa
+        prioridades_locales = []
+
+    # Asignamos cada provincia en la categoría correspondiente
+    umbrales = [("Bajo", 0, prioridades_globales_perfiles["Bajo"]), ("Medio", prioridades_globales_perfiles["Bajo"], prioridades_globales_perfiles["Medio"]), ("Alto", prioridades_globales_perfiles["Medio"], 1)]
+    categorias_asignadas = {}
+    for i, prioridad_global in enumerate(prioridades_globales):
+        categoria = ahpsort.clasificar(prioridad_global, umbrales)
+        categorias_asignadas[provincias[i]] = categoria
+    print(f"Categorías asignadas: {categorias_asignadas}")
+
+    # 3. Guardamos los resultados clasificados a través de un archivo CSV
+    resultados_clasificacion = pd.DataFrame.from_dict(categorias_asignadas, orient='index', columns=['Categoría'])
+    ruta_resultados_clasificacion = "resultados/resultados_clasificacion4.csv"
+    datos.guardar_resultados_csv(resultados_clasificacion, ruta_resultados_clasificacion)
+
+    # 4. Visualizamos el mapa y lo guardamos en formato PNG
+    mapa.mostrar_mapa_espana_shapefile("datos/recintos_provinciales_inspire_peninbal_etrs89.shp", categorias_asignadas, "resultados/mapa_prioridades4.png")
 if __name__ == "__main__":
     ahpsort_ii()
