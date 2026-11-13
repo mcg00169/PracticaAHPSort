@@ -127,7 +127,7 @@ def ahpsort_ii():
             valor = valores[j]
             prioridad_local = prioridades.prioridad_local(valor, puntos_x[j], puntos_y[j])  # Calculamos la prioridad local para cada alternativa
             prioridades_locales.append(prioridad_local)
-        print(f"Prioridades locales para las alternativa {columna_alternativas[i]}: {prioridades_locales}")
+        print(f"Prioridades locales para la alternativa {columna_alternativas[i]}: {prioridades_locales}")
         prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
         print(f"Prioridad global para la alternativa {columna_alternativas[i]}: {prioridad_global}")
         prioridades_globales.append(prioridad_global)
@@ -257,7 +257,7 @@ def ahpsort_ii():
             valor = valores[j]
             prioridad_local = prioridades.prioridad_local(valor, puntos_x[j], puntos_y[j])  # Calculamos la prioridad local para cada alternativa
             prioridades_locales.append(prioridad_local)
-        print(f"Prioridades locales para las alternativa {columna_alternativas[i]}: {prioridades_locales}")
+        print(f"Prioridades locales para la alternativa {columna_alternativas[i]}: {prioridades_locales}")
         prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
         print(f"Prioridad global para la alternativa {columna_alternativas[i]}: {prioridad_global}")
         prioridades_globales.append(prioridad_global)
@@ -360,7 +360,7 @@ def ahpsort_ii():
             valor = valores[j]
             prioridad_local = prioridades.prioridad_local(valor, puntos_x[j], puntos_y[j])  # Calculamos la prioridad local para cada alternativa
             prioridades_locales.append(prioridad_local)
-        print(f"Prioridades locales para las alternativa {provincias[i]}: {prioridades_locales}")
+        print(f"Prioridades locales para la alternativa {provincias[i]}: {prioridades_locales}")
         prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
         print(f"Prioridad global para la alternativa {provincias[i]}: {prioridad_global}")
         prioridades_globales.append(prioridad_global)
@@ -402,7 +402,7 @@ def ahpsort_ii():
             valor = valores[j]
             prioridad_local = prioridades.prioridad_local(valor, puntos_x[j], puntos_y[j])  # Calculamos la prioridad local para cada alternativa
             prioridades_locales.append(prioridad_local)
-        print(f"Prioridades locales para las alternativa {provincias[i]}: {prioridades_locales}")
+        print(f"Prioridades locales para la alternativa {provincias[i]}: {prioridades_locales}")
         prioridad_global = ahpsort.prioridad_global(prioridades_locales, pesos)
         print(f"Prioridad global para la alternativa {provincias[i]}: {prioridad_global}")
         prioridades_globales.append(prioridad_global)
